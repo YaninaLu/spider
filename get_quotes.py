@@ -67,15 +67,15 @@ class QuotesPipeline(DbSavePipeline):
     def add_tags(quote, tags, session):
         for tag in tags:
             tag_query = session.query(Tag).filter(Tag.name == tag)
-            tag_exists = tag_query.first()
+            existing_tag = tag_query.first()
 
-            if not tag_exists:
+            if existing_tag:
+                quote.tags.append(existing_tag)
+            else:
                 tag = Tag(name=tag)
                 session.add(tag)
                 quote.tags.append(tag)
                 continue
-
-            quote.tags.append(tag_exists)
 
     def process_item(self, item, spider):
         adapter = ItemAdapter(item)
@@ -160,16 +160,8 @@ class AuthorsSpider(scrapy.Spider):
         yield AuthorItem(fullname=fullname, birth_date=birth_date, bio=bio, born_in=born_in)
 
 
-def run_spider(spider):
-    process = CrawlerProcess()
-    process.crawl(spider)
-    process.start()
-
-
 if __name__ == '__main__':
-    process_authors = Process(target=run_spider, args=(AuthorsSpider,))
-    process_authors.start()
-    process_authors.join()
-    process_quotes = Process(target=run_spider, args=(QuotesSpider,))
-    process_quotes.start()
-    process_quotes.join()
+    process = CrawlerProcess()
+    process.crawl(AuthorsSpider)
+    process.crawl(QuotesSpider)
+    process.start()
